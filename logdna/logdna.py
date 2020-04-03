@@ -53,6 +53,8 @@ class LogDNAHandler(logging.Handler):
         self.setLevel(logging.DEBUG)
         self.lock = threading.RLock()
 
+        print('i got here')
+
     def buffer_log(self, message):
         if message and message['line']:
             if len(message['line']) > self.max_length:
@@ -62,6 +64,7 @@ class LogDNAHandler(logging.Handler):
 
         # Attempt to acquire lock to write to buf, otherwise write to secondary as flush occurs
         if self.lock.acquire(blocking=False):
+            print('got lock to write to buff')
             buf_size = reduce(lambda x, y: x + len(y['line']), self.buf, 0)
 
             if buf_size + len(message['line']) < self.buf_retention_byte_limit:
@@ -97,6 +100,7 @@ class LogDNAHandler(logging.Handler):
 
     # do not call without acquiring the lock
     def send_request(self):
+        print('sending request')
         self.buf.extend(self.secondary)
         self.secondary = []
         data = {'e': 'ls', 'ls': self.buf}
@@ -121,6 +125,7 @@ class LogDNAHandler(logging.Handler):
             self.handle_exception(e)
 
     def flush(self):
+        print('trying to flush')
         if len(self.buf) == 0:
             return
         if self.lock.acquire(blocking=False):
@@ -133,6 +138,7 @@ class LogDNAHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
+        print(msg)
         record = record.__dict__
         opts = {}
         if 'args' in record:
@@ -169,6 +175,7 @@ class LogDNAHandler(logging.Handler):
                     message['meta'] = sanitize_meta(opts['meta'])
                 else:
                     message['meta'] = json.dumps(opts['meta'])
+        print(message)
         self.buffer_log(message)
 
     def close(self):
